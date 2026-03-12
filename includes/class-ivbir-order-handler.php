@@ -186,20 +186,69 @@ class IVBIR_Order_Handler {
             $order->set_payment_method_title($pm_title);
         }
 
+        // Calcular totales antes de cambiar el estado para que el pedido
+        // tenga los importes correctos cuando se disparen las notificaciones
+        $order->calculate_totals();
+        $order->save();
+
         // Establecer estado según método de pago
         $processing_methods = array('redsys', 'bizumredsys', 'cod');
 
         if (in_array($payment_method, $processing_methods)) {
-            $order->update_status('processing', __('Pedido procesado automáticamente según el método de pago.', 'ivb-infarma-registration'));
+            $this->update_order_status_safely($order, 'processing', __('Pedido procesado automáticamente según el método de pago.', 'ivb-infarma-registration'));
         } elseif ($payment_method === 'bacs') {
-            $order->update_status('on-hold', __('Pedido en espera para transferencia bancaria.', 'ivb-infarma-registration'));
+            $this->update_order_status_safely($order, 'on-hold', __('Pedido en espera para transferencia bancaria.', 'ivb-infarma-registration'));
         }
 
-        // Calcular totales y guardar
-        $order->calculate_totals();
-        $order->save();
-
         return $order;
+    }
+
+    /**
+     * Cambiar el estado del pedido de forma segura, evitando que el plugin
+     * invoice-payment-option-woocommerce falle al recibir un array en lugar
+     * de un objeto WC_Order en el filtro woocommerce_email_attachments
+     * (esto ocurre con los emails de backorder, que pasan $args como tercer
+     * parámetro en lugar del propio pedido).
+     */
+    private function update_order_status_safely($order, $status, $note = '') {
+        $hook_name        = 'woocommerce_email_attachments';
+        $removed_callbacks = array();
+
+        // Localizar y retirar temporalmente los callbacks de AF_IG_Admin
+        // que llaman a get_id() sin comprobar si el parámetro es un objeto.
+        global $wp_filter;
+        if (class_exists('AF_IG_Admin') && isset($wp_filter[$hook_name])) {
+            $to_remove = array();
+
+            foreach ($wp_filter[$hook_name]->callbacks as $priority => $callbacks) {
+                foreach ($callbacks as $callback) {
+                    if (
+                        is_array($callback['function'])
+                        && is_object($callback['function'][0])
+                        && $callback['function'][0] instanceof AF_IG_Admin
+                    ) {
+                        $to_remove[] = array(
+                            'callback'      => $callback['function'],
+                            'priority'      => $priority,
+                            'accepted_args' => $callback['accepted_args'],
+                        );
+                    }
+                }
+            }
+
+            foreach ($to_remove as $item) {
+                if (remove_filter($hook_name, $item['callback'], $item['priority'])) {
+                    $removed_callbacks[] = $item;
+                }
+            }
+        }
+
+        $order->update_status($status, $note);
+
+        // Restaurar los callbacks retirados
+        foreach ($removed_callbacks as $item) {
+            add_filter($hook_name, $item['callback'], $item['priority'], $item['accepted_args']);
+        }
     }
 
     /**
