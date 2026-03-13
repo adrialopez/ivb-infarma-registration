@@ -789,9 +789,108 @@ class IVBIR_User_Form {
                 transform: translateY(-2px);
             }
 
-            @media (max-width: 600px) {
+            /* ─── Responsive: tablet ─────────────────────────────── */
+            @media (max-width: 768px) {
+                .wrap {
+                    padding: 1.25rem;
+                    width: calc(100% - 24px);
+                    margin: 1rem auto !important;
+                }
+
+                .ivbir-section {
+                    padding: 1.25rem;
+                    margin-top: 1.5rem;
+                }
+
+                .ivbir-form-row {
+                    flex-direction: column;
+                    gap: 0;
+                }
+
+                .ivbir-packs-grid {
+                    grid-template-columns: 1fr;
+                }
+
+                #createusersub {
+                    width: 100% !important;
+                    padding: 16px 24px !important;
+                }
+
+                p.submit {
+                    margin-top: 2rem;
+                    padding-top: 1.5rem;
+                }
+
                 .ivbir-payment-buttons {
                     grid-template-columns: 1fr;
+                }
+            }
+
+            /* ─── Responsive: móvil pequeño ──────────────────────── */
+            @media (max-width: 480px) {
+                .wrap {
+                    padding: 1rem;
+                    width: calc(100% - 16px);
+                    border-radius: 8px;
+                }
+
+                .ivbir-form-title {
+                    font-size: 1.15rem;
+                    padding: 1rem;
+                    letter-spacing: 0.5px;
+                }
+
+                .ivbir-section h2 {
+                    font-size: 1.1rem;
+                }
+
+                /* Etiqueta encima del campo en form-table */
+                .form-table th,
+                .form-table td {
+                    display: block;
+                    width: 100%;
+                }
+
+                .form-table th {
+                    padding: 12px 0 4px;
+                    width: auto;
+                }
+
+                .form-table td {
+                    padding: 0 0 12px;
+                }
+
+                .form-table input[type="text"],
+                .form-table input[type="email"],
+                .form-table input[type="password"],
+                .form-table input[type="number"],
+                .form-table select,
+                .form-table textarea {
+                    max-width: 100%;
+                }
+
+                .ivbir-pack-images {
+                    padding: 10px;
+                    gap: 6px;
+                }
+
+                .ivbir-pack-content {
+                    padding: 14px;
+                }
+
+                .ivbir-payment-button {
+                    min-height: 80px;
+                    padding: 1rem;
+                    flex-direction: row;
+                    justify-content: flex-start;
+                    gap: 12px;
+                }
+
+                .ivbir-payment-icon {
+                    font-size: 28px;
+                    width: 28px;
+                    height: 28px;
+                    margin-bottom: 0;
                 }
             }
 
