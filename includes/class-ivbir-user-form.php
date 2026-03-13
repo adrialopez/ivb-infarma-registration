@@ -1241,12 +1241,22 @@ class IVBIR_User_Form {
         }
 
         $all_gateways = WC()->payment_gateways->payment_gateways();
+
+        // Pre-check: ¿está el método por defecto disponible y habilitado?
+        $default_available = false;
+        foreach ($all_gateways as $chk_id => $chk_gw) {
+            if ($chk_id === $default && in_array($chk_id, $allowed_methods) && $chk_gw->enabled === 'yes') {
+                $default_available = true;
+                break;
+            }
+        }
+
         $buttons = '';
         $is_first = true;
 
         foreach ($all_gateways as $id => $gateway) {
             if (in_array($id, $allowed_methods) && $gateway->enabled === 'yes') {
-                $selected_class = ($id === $default || $is_first) ? 'selected' : '';
+                $selected_class = ($id === $default || (!$default_available && $is_first)) ? 'selected' : '';
                 $icon = 'dashicons-money-alt'; // Default icon
 
                 // Customize icons based on payment method
