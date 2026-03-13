@@ -791,10 +791,22 @@ class IVBIR_User_Form {
 
             /* ─── Responsive: tablet ─────────────────────────────── */
             @media (max-width: 768px) {
+                #wpbody-content {
+                    padding: 0 8px;
+                }
+
+                .ivbir-logo-container img {
+                    max-width: 180px;
+                }
+
+                .ivbir-logo-container {
+                    margin-bottom: 1.25rem;
+                }
+
                 .wrap {
                     padding: 1.25rem;
-                    width: calc(100% - 24px);
-                    margin: 1rem auto !important;
+                    width: calc(100% - 16px);
+                    margin: 0.5rem auto !important;
                 }
 
                 .ivbir-section {
@@ -828,10 +840,23 @@ class IVBIR_User_Form {
 
             /* ─── Responsive: móvil pequeño ──────────────────────── */
             @media (max-width: 480px) {
+                #wpbody-content {
+                    padding: 0 4px;
+                }
+
+                .ivbir-logo-container img {
+                    max-width: 140px;
+                }
+
+                .ivbir-logo-container {
+                    margin-bottom: 1rem;
+                }
+
                 .wrap {
                     padding: 1rem;
-                    width: calc(100% - 16px);
-                    border-radius: 8px;
+                    width: 100%;
+                    margin: 0 !important;
+                    border-radius: 0;
                 }
 
                 .ivbir-form-title {
