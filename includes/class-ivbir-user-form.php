@@ -794,7 +794,50 @@ class IVBIR_User_Form {
                     grid-template-columns: 1fr;
                 }
             }
+
+            /* Overlay bloqueante durante procesamiento */
+            #ivbir-processing-overlay {
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: rgba(0, 0, 0, 0.75);
+                z-index: 999999;
+                justify-content: center;
+                align-items: center;
+                flex-direction: column;
+                gap: 20px;
+            }
+            #ivbir-processing-overlay.active {
+                display: flex;
+            }
+            #ivbir-processing-overlay .ivbir-overlay-spinner {
+                width: 56px;
+                height: 56px;
+                border: 5px solid rgba(255, 255, 255, 0.3);
+                border-top-color: #fff;
+                border-radius: 50%;
+                animation: ivbirSpin 0.8s linear infinite;
+            }
+            @keyframes ivbirSpin {
+                to { transform: rotate(360deg); }
+            }
+            #ivbir-processing-overlay .ivbir-overlay-text {
+                color: #fff;
+                font-size: 18px;
+                font-weight: 600;
+                text-align: center;
+            }
+            #ivbir-processing-overlay .ivbir-overlay-sub {
+                color: rgba(255, 255, 255, 0.7);
+                font-size: 13px;
+                text-align: center;
+            }
         </style>
+        <div id="ivbir-processing-overlay">
+            <div class="ivbir-overlay-spinner"></div>
+            <div class="ivbir-overlay-text">Creando usuario y pedido&hellip;</div>
+            <div class="ivbir-overlay-sub">Por favor, no cierres ni recargues esta p&aacute;gina</div>
+        </div>
         <?php
     }
 
@@ -1127,8 +1170,15 @@ class IVBIR_User_Form {
                     $('.ivbir-notice').slideDown(300);
                     $('html, body').animate({ scrollTop: 0 }, 400);
                 } else {
-                    // Activar estado de carga
+                    // Activar overlay bloqueante y estado de carga
+                    $('#ivbir-processing-overlay').addClass('active');
                     $('#createusersub').addClass('loading').prop('disabled', true);
+
+                    // Advertir si intentan salir mientras se procesa
+                    window.addEventListener('beforeunload', function(e) {
+                        e.preventDefault();
+                        e.returnValue = '';
+                    });
                 }
             });
 
@@ -1241,12 +1291,22 @@ class IVBIR_User_Form {
         }
 
         $all_gateways = WC()->payment_gateways->payment_gateways();
+
+        // Pre-check: ¿está el método por defecto disponible y habilitado?
+        $default_available = false;
+        foreach ($all_gateways as $chk_id => $chk_gw) {
+            if ($chk_id === $default && in_array($chk_id, $allowed_methods) && $chk_gw->enabled === 'yes') {
+                $default_available = true;
+                break;
+            }
+        }
+
         $buttons = '';
         $is_first = true;
 
         foreach ($all_gateways as $id => $gateway) {
             if (in_array($id, $allowed_methods) && $gateway->enabled === 'yes') {
-                $selected_class = ($id === $default || $is_first) ? 'selected' : '';
+                $selected_class = ($id === $default || (!$default_available && $is_first)) ? 'selected' : '';
                 $icon = 'dashicons-money-alt'; // Default icon
 
                 // Customize icons based on payment method
