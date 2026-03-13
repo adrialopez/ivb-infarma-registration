@@ -3,7 +3,7 @@
 Plugin de WordPress para gestionar el alta de usuarios de Infarma con creación automática de pedidos y packs configurables.
 
 **Autor:** Thinking Idea
-**Versión actual:** 0.3.2
+**Versión actual:** 0.3.3
 
 ---
 
@@ -13,9 +13,10 @@ Plugin de WordPress para gestionar el alta de usuarios de Infarma con creación 
 - Formulario personalizado de registro con diseño premium
 - Creación automática de pedidos al registrar usuario
 - Campos de facturación y envío
-- Métodos de pago configurables (TPV, transferencia, etc.)
+- Métodos de pago configurables (TPV, transferencia, etc.) con transferencia bancaria como opción por defecto
 - Compatible con ACF y recargo de equivalencia
 - Campo "comercial" automático con el email del creador
+- Overlay bloqueante durante el alta para evitar duplicados por recarga accidental
 
 ---
 
@@ -55,6 +56,11 @@ Plugin de WordPress para gestionar el alta de usuarios de Infarma con creación 
 ---
 
 ## Changelog
+
+### 0.3.3
+- Fix método de pago por defecto: solo se preselecciona transferencia bancaria (antes aparecían ambos marcados)
+- Rendimiento: `calculate_totals()` reducido de 4 llamadas a 1 eliminando recálculos intermedios redundantes
+- UX: overlay bloqueante a pantalla completa durante la creación del usuario y el pedido para evitar recargas accidentales
 
 ### 0.3.2
 - Campo "comercial": guarda el email del admin que crea el usuario
