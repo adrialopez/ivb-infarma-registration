@@ -794,7 +794,50 @@ class IVBIR_User_Form {
                     grid-template-columns: 1fr;
                 }
             }
+
+            /* Overlay bloqueante durante procesamiento */
+            #ivbir-processing-overlay {
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: rgba(0, 0, 0, 0.75);
+                z-index: 999999;
+                justify-content: center;
+                align-items: center;
+                flex-direction: column;
+                gap: 20px;
+            }
+            #ivbir-processing-overlay.active {
+                display: flex;
+            }
+            #ivbir-processing-overlay .ivbir-overlay-spinner {
+                width: 56px;
+                height: 56px;
+                border: 5px solid rgba(255, 255, 255, 0.3);
+                border-top-color: #fff;
+                border-radius: 50%;
+                animation: ivbirSpin 0.8s linear infinite;
+            }
+            @keyframes ivbirSpin {
+                to { transform: rotate(360deg); }
+            }
+            #ivbir-processing-overlay .ivbir-overlay-text {
+                color: #fff;
+                font-size: 18px;
+                font-weight: 600;
+                text-align: center;
+            }
+            #ivbir-processing-overlay .ivbir-overlay-sub {
+                color: rgba(255, 255, 255, 0.7);
+                font-size: 13px;
+                text-align: center;
+            }
         </style>
+        <div id="ivbir-processing-overlay">
+            <div class="ivbir-overlay-spinner"></div>
+            <div class="ivbir-overlay-text">Creando usuario y pedido&hellip;</div>
+            <div class="ivbir-overlay-sub">Por favor, no cierres ni recargues esta p&aacute;gina</div>
+        </div>
         <?php
     }
 
@@ -1127,8 +1170,15 @@ class IVBIR_User_Form {
                     $('.ivbir-notice').slideDown(300);
                     $('html, body').animate({ scrollTop: 0 }, 400);
                 } else {
-                    // Activar estado de carga
+                    // Activar overlay bloqueante y estado de carga
+                    $('#ivbir-processing-overlay').addClass('active');
                     $('#createusersub').addClass('loading').prop('disabled', true);
+
+                    // Advertir si intentan salir mientras se procesa
+                    window.addEventListener('beforeunload', function(e) {
+                        e.preventDefault();
+                        e.returnValue = '';
+                    });
                 }
             });
 

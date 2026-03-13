@@ -269,8 +269,6 @@ class IVBIR_Order_Handler {
             }
         }
 
-        $order->calculate_totals();
-        $order->save();
     }
 
     /**
@@ -342,9 +340,6 @@ class IVBIR_Order_Handler {
             $order->add_coupon($coupon_code, $coupon->get_amount(), $coupon->get_discount_type());
         }
 
-        $order->calculate_totals();
-        $order->save();
-
         return true;
     }
 
@@ -376,9 +371,6 @@ class IVBIR_Order_Handler {
                 }
             }
         }
-
-        $order->calculate_totals();
-        $order->save();
     }
 
     /**
