@@ -358,17 +358,12 @@ class IVBIR_Order_Handler {
                 continue;
             }
 
-            $product_id = $item->get_product_id();
-            $product = wc_get_product($product_id);
+            $current_tax_class = $item->get_tax_class();
 
-            if ($product) {
-                $current_tax_class = $product->get_tax_class();
-
-                if (isset($recargo_taxes[$current_tax_class])) {
-                    $new_tax_class = $recargo_taxes[$current_tax_class];
-                    $item->set_tax_class($new_tax_class);
-                    $item->save();
-                }
+            if (isset($recargo_taxes[$current_tax_class])) {
+                $new_tax_class = $recargo_taxes[$current_tax_class];
+                $item->set_tax_class($new_tax_class);
+                $item->save();
             }
         }
     }
