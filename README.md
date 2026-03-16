@@ -3,7 +3,7 @@
 Plugin de WordPress para gestionar el alta de usuarios de Infarma con creación automática de pedidos y packs configurables.
 
 **Autor:** Thinking Idea
-**Versión actual:** 0.3.3
+**Versión actual:** 0.3.4
 
 ---
 
@@ -56,6 +56,10 @@ Plugin de WordPress para gestionar el alta de usuarios de Infarma con creación 
 ---
 
 ## Changelog
+
+### 0.3.4
+- Fix recargo de equivalencia: la clase de impuesto se leía del registro del producto en lugar del ítem del pedido, lo que causaba que el recargo no se aplicara en productos variables (clase `inherit` ausente del diccionario)
+- Mejora de rendimiento: eliminada llamada a `wc_get_product()` innecesaria por línea de pedido
 
 ### 0.3.3
 - Fix método de pago por defecto: solo se preselecciona transferencia bancaria (antes aparecían ambos marcados)

@@ -3,7 +3,7 @@
  * Plugin Name: IVB Infarma Registration
  * Plugin URI: https://thinkingidea.com/
  * Description: Sistema de alta de usuarios Infarma con creación automática de pedidos y gestión de packs configurables
- * Version: 0.3.3
+ * Version: 0.3.4
  * Author: Thinking Idea
  * Author URI: https://thinkingidea.com/
  * Text Domain: ivb-infarma-registration
