@@ -1298,11 +1298,7 @@ class IVBIR_User_Form {
                     $('#ivbir-processing-overlay').addClass('active');
                     $('#createusersub').addClass('loading').prop('disabled', true);
 
-                    // Advertir si intentan salir mientras se procesa
-                    window.addEventListener('beforeunload', function(e) {
-                        e.preventDefault();
-                        e.returnValue = '';
-                    });
+
                 }
             });
 
