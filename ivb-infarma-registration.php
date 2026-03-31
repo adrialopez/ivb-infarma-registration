@@ -3,7 +3,7 @@
  * Plugin Name: IVB Infarma Registration
  * Plugin URI: https://thinkingidea.com/
  * Description: Sistema de alta de usuarios Infarma con creación automática de pedidos y gestión de packs configurables
- * Version: 0.3.4
+ * Version: 0.3.5
  * Author: Thinking Idea
  * Author URI: https://thinkingidea.com/
  * Text Domain: ivb-infarma-registration
@@ -29,7 +29,7 @@ if (!in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get
 }
 
 // Definir constantes del plugin
-define('IVBIR_VERSION', '0.3.3');
+define('IVBIR_VERSION', '0.3.5');
 define('IVBIR_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('IVBIR_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('IVBIR_PLUGIN_BASENAME', plugin_basename(__FILE__));

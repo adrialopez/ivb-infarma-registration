@@ -1071,6 +1071,7 @@ class IVBIR_User_Form {
                                 <select name="billing_state" id="billing_state" required>
                                     <option value="">Seleccionar...</option>
                                 </select>
+                                <input type="text" id="billing_state_text" name="billing_state_text" placeholder="Provincia" style="display:none;" disabled>
                             </div>
                         </div>
 
@@ -1121,6 +1122,7 @@ class IVBIR_User_Form {
                                     <select name="shipping_state" id="shipping_state">
                                         <option value="">Seleccionar...</option>
                                     </select>
+                                    <input type="text" id="shipping_state_text" name="shipping_state_text" placeholder="Provincia" style="display:none;" disabled>
                                 </div>
                             </div>
 
@@ -1161,32 +1163,45 @@ class IVBIR_User_Form {
             }, 50);
 
             // Cargar provincias al cambiar país
-            function updateStates(countrySelect, stateSelect) {
+            function updateStates(countrySelect, stateSelect, stateTextInput) {
                 var country = $(countrySelect).val();
                 var states = allStates[country] || {};
                 var $stateSelect = $(stateSelect);
+                var $stateText = $(stateTextInput);
 
-                $stateSelect.empty();
+                if (country === 'ES') {
+                    // España: mostrar select con provincias
+                    $stateText.hide().prop('disabled', true).attr('name', stateTextInput.replace('#', '') + '_disabled');
+                    $stateSelect.show().prop('disabled', false).attr('required', true);
 
-                if (Object.keys(states).length > 0) {
-                    $.each(states, function(code, name) {
-                        $stateSelect.append($('<option>', { value: code, text: name }));
-                    });
+                    $stateSelect.empty();
+                    if (Object.keys(states).length > 0) {
+                        $stateSelect.append($('<option>', { value: '', text: 'Seleccionar...' }));
+                        $.each(states, function(code, name) {
+                            $stateSelect.append($('<option>', { value: code, text: name }));
+                        });
+                    } else {
+                        $stateSelect.append($('<option>', { value: '', text: 'Ninguna provincia' }));
+                    }
                 } else {
-                    $stateSelect.append($('<option>', { value: '', text: 'Ninguna provincia' }));
+                    // Otro país: mostrar campo de texto libre
+                    $stateSelect.hide().prop('disabled', true).removeAttr('required');
+                    $stateText.show().prop('disabled', false).attr('name', stateSelect.replace('#', ''));
                 }
             }
 
             // Inicializar provincias
-            updateStates('#billing_country', '#billing_state');
-            updateStates('#shipping_country', '#shipping_state');
+            updateStates('#billing_country', '#billing_state', '#billing_state_text');
+            updateStates('#shipping_country', '#shipping_state', '#shipping_state_text');
+            updateCifPattern();
 
             $('#billing_country').on('change', function() {
-                updateStates(this, '#billing_state');
+                updateStates(this, '#billing_state', '#billing_state_text');
+                updateCifPattern();
             });
 
             $('#shipping_country').on('change', function() {
-                updateStates(this, '#shipping_state');
+                updateStates(this, '#shipping_state', '#shipping_state_text');
             });
 
             // Toggle campos de envío
@@ -1252,21 +1267,29 @@ class IVBIR_User_Form {
                 }
 
                 // Campos de dirección
-                var requiredBilling = ['billing_address', 'billing_postcode', 'billing_city', 'billing_phone', 'billing_country', 'billing_state'];
+                var requiredBilling = ['billing_address', 'billing_postcode', 'billing_city', 'billing_phone', 'billing_country'];
                 $.each(requiredBilling, function(i, field) {
                     if ($('#' + field).val().trim() === '') {
                         errors.push('El campo ' + field.replace('billing_', '') + ' es obligatorio.');
                     }
                 });
+                var billingStateVal = $('#billing_country').val() === 'ES' ? $('#billing_state').val() : $('#billing_state_text').val();
+                if (!billingStateVal || billingStateVal.trim() === '') {
+                    errors.push('El campo provincia es obligatorio.');
+                }
 
                 // Si envío diferente, validar campos de envío
                 if ($('#different_shipping').is(':checked')) {
-                    var requiredShipping = ['shipping_address', 'shipping_postcode', 'shipping_city', 'shipping_country', 'shipping_state'];
+                    var requiredShipping = ['shipping_address', 'shipping_postcode', 'shipping_city', 'shipping_country'];
                     $.each(requiredShipping, function(i, field) {
                         if ($('#' + field).val().trim() === '') {
                             errors.push('El campo de envío ' + field.replace('shipping_', '') + ' es obligatorio.');
                         }
                     });
+                    var shippingStateVal = $('#shipping_country').val() === 'ES' ? $('#shipping_state').val() : $('#shipping_state_text').val();
+                    if (!shippingStateVal || shippingStateVal.trim() === '') {
+                        errors.push('El campo provincia de envío es obligatorio.');
+                    }
                 }
 
                 // Pack seleccionado
@@ -1305,6 +1328,40 @@ class IVBIR_User_Form {
             // Lógica de recargo de equivalencia (si existe el campo ACF)
             var cifInput = $('#acf-field_66d998ffe235c');
 
+            var cifPatterns = {
+                'SL': { pattern: '^B\\d{8}$', placeholder: 'B12345678' },
+                'CB': { pattern: '^E\\d{8}$', placeholder: 'E12345678' },
+                'DNI': { pattern: '^\\d{8}[A-Za-z]$', placeholder: '12345678A' },
+                'SA': { pattern: '^A\\d{8}$', placeholder: 'A12345678' },
+                'ESPJ': { pattern: '^E\\d{8}$', placeholder: 'E12345678' },
+                'SJ': { pattern: '^J\\d{8}$', placeholder: 'J12345678' }
+            };
+
+            function updateCifPattern() {
+                var $cif = $('#acf-field_66d998ffe235c');
+                if (!$cif.length) return;
+                var country = $('#billing_country').val();
+                var tipo = $('#tipo_identificador').val();
+
+                if (country !== 'ES') {
+                    // Fuera de España: sin validación de formato CIF
+                    $cif.prop('disabled', false).removeAttr('pattern').attr('placeholder', '');
+                    return;
+                }
+
+                // España: aplicar patrón según tipo de identificador
+                if (!tipo) {
+                    $cif.prop('disabled', true).removeAttr('pattern').attr('placeholder', '');
+                    return;
+                }
+                $cif.prop('disabled', false);
+                if (cifPatterns[tipo]) {
+                    $cif.attr('pattern', cifPatterns[tipo].pattern).attr('placeholder', cifPatterns[tipo].placeholder);
+                } else {
+                    $cif.removeAttr('pattern').attr('placeholder', '');
+                }
+            }
+
             if ($('#tipo_identificador').length) {
                 $('#recargo_equivalencia_toggle').prop('disabled', true);
 
@@ -1321,20 +1378,7 @@ class IVBIR_User_Form {
 
                     cifInput.prop('disabled', false);
 
-                    var patterns = {
-                        'SL': { pattern: '^B\\d{8}$', placeholder: 'B12345678' },
-                        'CB': { pattern: '^E\\d{8}$', placeholder: 'E12345678' },
-                        'DNI': { pattern: '^\\d{8}[A-Za-z]$', placeholder: '12345678A' },
-                        'SA': { pattern: '^A\\d{8}$', placeholder: 'A12345678' },
-                        'ESPJ': { pattern: '^E\\d{8}$', placeholder: 'E12345678' },
-                        'SJ': { pattern: '^J\\d{8}$', placeholder: 'J12345678' }
-                    };
-
-                    if (patterns[tipo]) {
-                        cifInput.attr('pattern', patterns[tipo].pattern).attr('placeholder', patterns[tipo].placeholder);
-                    } else {
-                        cifInput.removeAttr('pattern').attr('placeholder', '');
-                    }
+                    updateCifPattern();
 
                     var noRecargoTypes = ['SL', 'SA', 'SJ'];
                     $('#recargo_equivalencia_toggle').prop('disabled', noRecargoTypes.indexOf(tipo) !== -1);
