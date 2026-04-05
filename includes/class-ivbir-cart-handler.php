@@ -15,12 +15,6 @@ class IVBIR_Cart_Handler {
     public function __construct() {
         // Poblar el carrito cuando el usuario tenga packs pendientes
         add_action('wp', array($this, 'maybe_populate_cart'));
-
-        // Aplicar descuentos de pack a los items del carrito
-        add_action('woocommerce_before_calculate_totals', array($this, 'apply_pack_discounts'), 10, 1);
-
-        // No mostrar el meta de pack en el carrito (front-end)
-        add_filter('woocommerce_get_item_data', array($this, 'hide_pack_item_data'), 10, 2);
     }
 
     /**
@@ -61,8 +55,7 @@ class IVBIR_Cart_Handler {
                 continue;
             }
 
-            $products  = ivbir()->pack_manager->get_pack_products($pack_id);
-            $discount  = floatval($pack['discount_percentage'] ?? 0);
+            $products = ivbir()->pack_manager->get_pack_products($pack_id);
 
             foreach ($products as $item) {
                 $product = wc_get_product($item['product_id']);
@@ -71,21 +64,9 @@ class IVBIR_Cart_Handler {
                     continue;
                 }
 
-                $cart_item_data = array(
-                    '_ivbir_pack_id'   => sanitize_key($pack_id),
-                    '_ivbir_pack_name' => sanitize_text_field($pack['name']),
-                );
-
-                if ($discount > 0) {
-                    $cart_item_data['_ivbir_pack_discount'] = $discount;
-                }
-
                 $result = WC()->cart->add_to_cart(
                     intval($item['product_id']),
-                    intval($item['quantity']),
-                    0,
-                    array(),
-                    $cart_item_data
+                    intval($item['quantity'])
                 );
 
                 if ($result) {
@@ -102,42 +83,4 @@ class IVBIR_Cart_Handler {
         }
     }
 
-    /**
-     * Aplicar el descuento del pack a los items del carrito marcados con _ivbir_pack_discount.
-     * Se llama en woocommerce_before_calculate_totals, que recalcula precios antes de los totales.
-     *
-     * @param WC_Cart $cart
-     */
-    public function apply_pack_discounts($cart) {
-        if (is_admin() && !defined('DOING_AJAX')) {
-            return;
-        }
-
-        foreach ($cart->get_cart() as $cart_item) {
-            if (empty($cart_item['_ivbir_pack_discount']) || $cart_item['_ivbir_pack_discount'] <= 0) {
-                continue;
-            }
-
-            $discount_rate  = floatval($cart_item['_ivbir_pack_discount']) / 100;
-            $original_price = floatval($cart_item['data']->get_price('edit'));
-            $new_price      = round($original_price * (1 - $discount_rate), wc_get_price_decimals());
-
-            $cart_item['data']->set_price($new_price);
-        }
-    }
-
-    /**
-     * Ocultar los meta internos del pack en la vista del carrito (front-end).
-     *
-     * @param array $item_data
-     * @param array $cart_item
-     * @return array
-     */
-    public function hide_pack_item_data($item_data, $cart_item) {
-        $hidden_keys = array('_ivbir_pack_id', '_ivbir_pack_name', '_ivbir_pack_discount');
-
-        return array_filter($item_data, function($data) use ($hidden_keys) {
-            return !in_array($data['key'] ?? '', $hidden_keys, true);
-        });
-    }
 }
