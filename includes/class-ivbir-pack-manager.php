@@ -55,6 +55,11 @@ class IVBIR_Pack_Manager {
     public function save_pack($pack_id, $pack_data) {
         $packs = $this->get_all_packs();
 
+        $use_type = $pack_data['use_type'] ?? 'create_order';
+        if (!in_array($use_type, array('create_order', 'add_to_cart'))) {
+            $use_type = 'create_order';
+        }
+
         $packs[$pack_id] = array(
             'id' => $pack_id,
             'name' => sanitize_text_field($pack_data['name']),
@@ -62,6 +67,7 @@ class IVBIR_Pack_Manager {
             'price' => max(0, floatval($pack_data['price'] ?? 0)), // No permitir precios negativos
             'discount_percentage' => min(100, max(0, floatval($pack_data['discount_percentage'] ?? 0))), // 0-100%
             'active' => isset($pack_data['active']) ? (bool) $pack_data['active'] : true,
+            'use_type' => $use_type,
             'order' => intval($pack_data['order'] ?? 0),
             'created_at' => $pack_data['created_at'] ?? current_time('mysql'),
             'updated_at' => current_time('mysql'),
@@ -279,6 +285,24 @@ class IVBIR_Pack_Manager {
         });
 
         return $active_packs;
+    }
+
+    /**
+     * Obtener packs activos para añadir al carrito (use_type = add_to_cart)
+     */
+    public function get_cart_packs() {
+        $packs = $this->get_all_packs();
+
+        $cart_packs = array_filter($packs, function($pack) {
+            return isset($pack['active']) && $pack['active']
+                && ($pack['use_type'] ?? 'create_order') === 'add_to_cart';
+        });
+
+        uasort($cart_packs, function($a, $b) {
+            return ($a['order'] ?? 0) - ($b['order'] ?? 0);
+        });
+
+        return $cart_packs;
     }
 
     /**

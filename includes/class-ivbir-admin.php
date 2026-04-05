@@ -38,8 +38,8 @@ class IVBIR_Admin {
      */
     public function add_admin_menu() {
         add_menu_page(
-            __('IVB Infarma', 'ivb-infarma-registration'),
-            __('IVB Infarma', 'ivb-infarma-registration'),
+            __('IVB Packs & POS', 'ivb-infarma-registration'),
+            __('IVB Packs & POS', 'ivb-infarma-registration'),
             'manage_woocommerce',
             'ivbir-settings',
             array($this, 'render_settings_page'),
@@ -291,7 +291,7 @@ class IVBIR_Admin {
         <div class="wrap ivbir-wrap">
             <h1>
                 <span class="dashicons dashicons-groups" style="font-size: 30px; margin-right: 10px;"></span>
-                <?php _e('IVB Infarma Registration', 'ivb-infarma-registration'); ?>
+                <?php _e('IVB Packs & POS', 'ivb-infarma-registration'); ?>
             </h1>
 
             <div class="ivbir-version-badge">
@@ -342,9 +342,22 @@ class IVBIR_Admin {
                         <div class="ivbir-pack-card <?php echo $pack['active'] ? '' : 'ivbir-pack-inactive'; ?>">
                             <div class="ivbir-pack-header">
                                 <h3><?php echo esc_html($pack['name']); ?></h3>
-                                <span class="ivbir-pack-status <?php echo $pack['active'] ? 'active' : 'inactive'; ?>">
-                                    <?php echo $pack['active'] ? __('Activo', 'ivb-infarma-registration') : __('Inactivo', 'ivb-infarma-registration'); ?>
-                                </span>
+                                <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                                    <span class="ivbir-pack-status <?php echo $pack['active'] ? 'active' : 'inactive'; ?>">
+                                        <?php echo $pack['active'] ? __('Activo', 'ivb-infarma-registration') : __('Inactivo', 'ivb-infarma-registration'); ?>
+                                    </span>
+                                    <?php if (($pack['use_type'] ?? 'create_order') === 'add_to_cart'): ?>
+                                        <span style="background:#0073aa;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">
+                                            <span class="dashicons dashicons-store" style="font-size:12px;vertical-align:middle;"></span>
+                                            <?php _e('Carrito', 'ivb-infarma-registration'); ?>
+                                        </span>
+                                    <?php else: ?>
+                                        <span style="background:#46b450;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">
+                                            <span class="dashicons dashicons-cart" style="font-size:12px;vertical-align:middle;"></span>
+                                            <?php _e('TPV', 'ivb-infarma-registration'); ?>
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
                             </div>
 
                             <div class="ivbir-pack-body">
@@ -430,6 +443,7 @@ class IVBIR_Admin {
                     'description' => sanitize_textarea_field($_POST['pack_description'] ?? ''),
                     'discount_percentage' => floatval($_POST['pack_discount'] ?? 0),
                     'active' => isset($_POST['pack_active']),
+                    'use_type' => sanitize_text_field($_POST['pack_use_type'] ?? 'create_order'),
                     'order' => intval($_POST['pack_order'] ?? 0),
                 );
 
@@ -493,6 +507,28 @@ class IVBIR_Admin {
                                     <input type="checkbox" name="pack_active" <?php checked($pack['active'] ?? true, true); ?>>
                                     <?php _e('Pack activo (visible en formulario)', 'ivb-infarma-registration'); ?>
                                 </label>
+                            </div>
+
+                            <div class="ivbir-form-field">
+                                <label><?php _e('Tipo de uso', 'ivb-infarma-registration'); ?></label>
+                                <div class="ivbir-radio-group">
+                                    <label class="ivbir-radio-label">
+                                        <input type="radio" name="pack_use_type" value="create_order" <?php checked(($pack['use_type'] ?? 'create_order'), 'create_order'); ?>>
+                                        <span class="dashicons dashicons-cart"></span>
+                                        <div>
+                                            <strong><?php _e('Crear pedido', 'ivb-infarma-registration'); ?></strong>
+                                            <span><?php _e('TPV / Infarma — se crea un pedido al registrar el usuario', 'ivb-infarma-registration'); ?></span>
+                                        </div>
+                                    </label>
+                                    <label class="ivbir-radio-label">
+                                        <input type="radio" name="pack_use_type" value="add_to_cart" <?php checked(($pack['use_type'] ?? 'create_order'), 'add_to_cart'); ?>>
+                                        <span class="dashicons dashicons-store"></span>
+                                        <div>
+                                            <strong><?php _e('Añadir al carrito', 'ivb-infarma-registration'); ?></strong>
+                                            <span><?php _e('Alta de usuario — los productos se añaden al carrito cuando el cliente hace login', 'ivb-infarma-registration'); ?></span>
+                                        </div>
+                                    </label>
+                                </div>
                             </div>
                         </div>
 

@@ -17,6 +17,10 @@ class IVBIR_User_Form {
      */
     public function __construct() {
         add_action('admin_init', array($this, 'maybe_customize_user_form'));
+
+        // Sección de packs de carrito para el formulario estándar de WordPress
+        add_action('user_new_form', array($this, 'render_cart_packs_section'));
+        add_action('user_register', array($this, 'save_cart_packs_meta'), 5);
     }
 
     /**
@@ -1676,5 +1680,99 @@ class IVBIR_User_Form {
         }
 
         return $errors;
+    }
+
+    /**
+     * Mostrar sección de packs "añadir al carrito" en el formulario estándar de WP
+     * Solo aparece cuando el usuario que crea NO tiene el rol de Infarma (que tiene su propio formulario)
+     */
+    public function render_cart_packs_section($context) {
+        // Si el usuario actual tiene el rol de infarma, ya usa el formulario personalizado
+        $current_user = wp_get_current_user();
+        $required_role = IVB_Infarma_Registration::get_setting('user_role_required', 'infarma');
+        if (!empty($required_role) && in_array($required_role, (array) $current_user->roles)) {
+            return;
+        }
+
+        $cart_packs = ivbir()->pack_manager->get_cart_packs();
+
+        if (empty($cart_packs)) {
+            return;
+        }
+        ?>
+        <h3 style="border-top:1px solid #ddd;padding-top:20px;margin-top:20px;">
+            <span class="dashicons dashicons-store" style="font-size:22px;vertical-align:middle;color:#4d738a;margin-right:6px;"></span>
+            <?php _e('Packs para el carrito', 'ivb-infarma-registration'); ?>
+        </h3>
+        <p class="description" style="margin-bottom:16px;">
+            <?php _e('Selecciona los packs que quieres añadir al carrito del usuario cuando haga su primer login.', 'ivb-infarma-registration'); ?>
+        </p>
+        <table class="form-table">
+            <tr>
+                <th scope="row"><?php _e('Packs', 'ivb-infarma-registration'); ?></th>
+                <td>
+                    <div class="ivbir-cart-packs-grid">
+                        <?php foreach ($cart_packs as $pack_id => $pack):
+                            $summary = ivbir()->pack_manager->get_pack_summary($pack_id);
+                            if (!$summary) continue;
+                        ?>
+                            <label class="ivbir-cart-pack-card">
+                                <input type="checkbox" name="ivbir_cart_packs[]" value="<?php echo esc_attr($pack_id); ?>">
+                                <div class="ivbir-cart-pack-info">
+                                    <strong><?php echo esc_html($pack['name']); ?></strong>
+                                    <?php if (!empty($pack['description'])): ?>
+                                        <span class="description"><?php echo esc_html($pack['description']); ?></span>
+                                    <?php endif; ?>
+                                    <div class="ivbir-cart-pack-meta">
+                                        <span>
+                                            <?php printf(
+                                                _n('%d producto', '%d productos', $summary['total_products'], 'ivb-infarma-registration'),
+                                                $summary['total_products']
+                                            ); ?>
+                                            &nbsp;·&nbsp;
+                                            <?php printf(
+                                                _n('%d unidad', '%d unidades', $summary['total_items'], 'ivb-infarma-registration'),
+                                                $summary['total_items']
+                                            ); ?>
+                                        </span>
+                                        <?php if ($pack['discount_percentage'] > 0): ?>
+                                            <span>
+                                                <?php echo wc_price($summary['discounted_price']); ?>
+                                                <del style="color:#999;"><?php echo wc_price($summary['original_price']); ?></del>
+                                                <strong style="color:#c0392b;">-<?php echo $pack['discount_percentage']; ?>%</strong>
+                                            </span>
+                                        <?php else: ?>
+                                            <span><?php echo wc_price($summary['original_price']); ?></span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </label>
+                        <?php endforeach; ?>
+                    </div>
+                </td>
+            </tr>
+        </table>
+        <?php
+    }
+
+    /**
+     * Guardar los packs de carrito seleccionados como user_meta al crear el usuario
+     */
+    public function save_cart_packs_meta($user_id) {
+        if (empty($_POST['ivbir_cart_packs']) || !is_array($_POST['ivbir_cart_packs'])) {
+            return;
+        }
+
+        $submitted_ids = array_map('sanitize_text_field', $_POST['ivbir_cart_packs']);
+
+        // Validar que solo se guarden IDs de packs de carrito reales y activos
+        $cart_packs = ivbir()->pack_manager->get_cart_packs();
+        $valid_ids = array_values(array_filter($submitted_ids, function($id) use ($cart_packs) {
+            return isset($cart_packs[$id]);
+        }));
+
+        if (!empty($valid_ids)) {
+            update_user_meta($user_id, '_ivbir_pending_cart_packs', $valid_ids);
+        }
     }
 }

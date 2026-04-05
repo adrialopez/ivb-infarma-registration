@@ -613,3 +613,137 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     transform: rotate(2deg);
 }
+
+/* =========================================
+   Pack Use Type Radio Group
+   ========================================= */
+
+.ivbir-radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 4px;
+}
+
+.ivbir-radio-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: #fff;
+}
+
+.ivbir-radio-label:hover {
+    border-color: #4d738a;
+    background: #f8fbfd;
+}
+
+.ivbir-radio-label input[type="radio"] {
+    margin-top: 3px;
+    flex-shrink: 0;
+}
+
+.ivbir-radio-label input[type="radio"]:checked ~ *,
+.ivbir-radio-label:has(input[type="radio"]:checked) {
+    color: #4d738a;
+}
+
+.ivbir-radio-label:has(input[type="radio"]:checked) {
+    border-color: #4d738a;
+    background: #f0f7fc;
+    box-shadow: 0 0 0 3px rgba(77, 115, 138, 0.1);
+}
+
+.ivbir-radio-label .dashicons {
+    font-size: 22px;
+    color: #4d738a;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.ivbir-radio-label div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.ivbir-radio-label div strong {
+    font-size: 14px;
+    color: #1d2327;
+}
+
+.ivbir-radio-label div span {
+    font-size: 12px;
+    color: #777;
+    line-height: 1.4;
+}
+
+/* =========================================
+   Cart Packs Section (user-new.php)
+   ========================================= */
+
+.ivbir-cart-packs-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 600px;
+}
+
+.ivbir-cart-pack-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: #fff;
+}
+
+.ivbir-cart-pack-card:hover {
+    border-color: #4d738a;
+    background: #f8fbfd;
+}
+
+.ivbir-cart-pack-card:has(input[type="checkbox"]:checked) {
+    border-color: #4d738a;
+    background: #f0f7fc;
+    box-shadow: 0 0 0 3px rgba(77, 115, 138, 0.1);
+}
+
+.ivbir-cart-pack-card input[type="checkbox"] {
+    margin-top: 3px;
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+}
+
+.ivbir-cart-pack-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.ivbir-cart-pack-info strong {
+    font-size: 14px;
+    color: #1d2327;
+}
+
+.ivbir-cart-pack-info .description {
+    font-size: 12px;
+    color: #777;
+}
+
+.ivbir-cart-pack-meta {
+    display: flex;
+    gap: 16px;
+    font-size: 12px;
+    color: #555;
+    margin-top: 2px;
+    flex-wrap: wrap;
+}

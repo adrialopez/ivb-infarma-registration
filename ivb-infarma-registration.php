@@ -1,9 +1,9 @@
 <?php
 /**
- * Plugin Name: IVB Infarma Registration
+ * Plugin Name: IVB Packs & POS
  * Plugin URI: https://thinkingidea.com/
- * Description: Sistema de alta de usuarios Infarma con creación automática de pedidos y gestión de packs configurables
- * Version: 0.3.5
+ * Description: Gestión de packs con creación de pedidos (TPV/Infarma) y añadir al carrito al crear usuarios
+ * Version: 0.4.0
  * Author: Thinking Idea
  * Author URI: https://thinkingidea.com/
  * Text Domain: ivb-infarma-registration
@@ -29,7 +29,7 @@ if (!in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get
 }
 
 // Definir constantes del plugin
-define('IVBIR_VERSION', '0.3.5');
+define('IVBIR_VERSION', '0.4.0');
 define('IVBIR_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('IVBIR_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('IVBIR_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -39,6 +39,7 @@ require_once IVBIR_PLUGIN_DIR . 'includes/class-ivbir-pack-manager.php';
 require_once IVBIR_PLUGIN_DIR . 'includes/class-ivbir-admin.php';
 require_once IVBIR_PLUGIN_DIR . 'includes/class-ivbir-user-form.php';
 require_once IVBIR_PLUGIN_DIR . 'includes/class-ivbir-order-handler.php';
+require_once IVBIR_PLUGIN_DIR . 'includes/class-ivbir-cart-handler.php';
 
 /**
  * Clase principal del plugin
@@ -51,6 +52,7 @@ class IVB_Infarma_Registration {
     public $admin;
     public $user_form;
     public $order_handler;
+    public $cart_handler;
 
     public static function get_instance() {
         if (null === self::$instance) {
@@ -80,6 +82,7 @@ class IVB_Infarma_Registration {
         }
 
         $this->order_handler = new IVBIR_Order_Handler();
+        $this->cart_handler = new IVBIR_Cart_Handler();
     }
 
     public function activate() {
