@@ -13,9 +13,9 @@ if (!defined('ABSPATH')) {
 class IVBIR_Cart_Handler {
 
     public function __construct() {
-        // Poblar el carrito cuando el usuario tenga packs pendientes.
-        // woocommerce_cart_loaded_from_session garantiza que la sesión del carrito ya está lista.
-        add_action('woocommerce_cart_loaded_from_session', array($this, 'maybe_populate_cart'));
+        // template_redirect dispara cuando WC está completamente inicializado
+        // (carrito + sesión listos para escritura).
+        add_action('template_redirect', array($this, 'maybe_populate_cart'));
     }
 
     /**
