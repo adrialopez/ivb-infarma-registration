@@ -47,7 +47,11 @@ class IVBIR_Cart_Handler {
         foreach ($pending_packs as $pack_id) {
             $pack = ivbir()->pack_manager->get_pack($pack_id);
 
-            if (!$pack || ($pack['use_type'] ?? 'create_order') !== 'add_to_cart' || empty($pack['active'])) {
+            $use_for_cart = array_key_exists('use_for_cart', $pack)
+                ? !empty($pack['use_for_cart'])
+                : ($pack['use_type'] ?? '') === 'add_to_cart';
+
+            if (!$pack || !$use_for_cart || empty($pack['active'])) {
                 continue;
             }
 
