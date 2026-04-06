@@ -13,8 +13,9 @@ if (!defined('ABSPATH')) {
 class IVBIR_Cart_Handler {
 
     public function __construct() {
-        // Poblar el carrito cuando el usuario tenga packs pendientes
-        add_action('wp', array($this, 'maybe_populate_cart'));
+        // Poblar el carrito cuando el usuario tenga packs pendientes.
+        // woocommerce_cart_loaded_from_session garantiza que la sesión del carrito ya está lista.
+        add_action('woocommerce_cart_loaded_from_session', array($this, 'maybe_populate_cart'));
     }
 
     /**
@@ -27,12 +28,7 @@ class IVBIR_Cart_Handler {
             return;
         }
 
-        // No ejecutar en el admin ni en peticiones AJAX/REST donde el carrito no aplica
-        if (is_admin() || (defined('DOING_AJAX') && DOING_AJAX) || (defined('REST_REQUEST') && REST_REQUEST)) {
-            return;
-        }
-
-        if (!function_exists('WC') || !WC()->cart instanceof WC_Cart) {
+        if (is_admin() || (defined('REST_REQUEST') && REST_REQUEST)) {
             return;
         }
 
