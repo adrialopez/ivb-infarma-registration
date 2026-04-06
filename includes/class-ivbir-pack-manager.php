@@ -55,11 +55,6 @@ class IVBIR_Pack_Manager {
     public function save_pack($pack_id, $pack_data) {
         $packs = $this->get_all_packs();
 
-        $use_type = $pack_data['use_type'] ?? 'create_order';
-        if (!in_array($use_type, array('create_order', 'add_to_cart'))) {
-            $use_type = 'create_order';
-        }
-
         $packs[$pack_id] = array(
             'id' => $pack_id,
             'name' => sanitize_text_field($pack_data['name']),
@@ -67,7 +62,8 @@ class IVBIR_Pack_Manager {
             'price' => max(0, floatval($pack_data['price'] ?? 0)), // No permitir precios negativos
             'discount_percentage' => min(100, max(0, floatval($pack_data['discount_percentage'] ?? 0))), // 0-100%
             'active' => isset($pack_data['active']) ? (bool) $pack_data['active'] : true,
-            'use_type' => $use_type,
+            'use_for_orders' => isset($pack_data['use_for_orders']) ? (bool) $pack_data['use_for_orders'] : true,
+            'use_for_cart'   => isset($pack_data['use_for_cart'])   ? (bool) $pack_data['use_for_cart']   : false,
             'order' => intval($pack_data['order'] ?? 0),
             'created_at' => $pack_data['created_at'] ?? current_time('mysql'),
             'updated_at' => current_time('mysql'),
@@ -270,13 +266,20 @@ class IVBIR_Pack_Manager {
     }
 
     /**
-     * Obtener packs activos para el formulario
+     * Obtener packs activos para el formulario TPV / Infarma (use_for_orders)
      */
     public function get_active_packs() {
         $packs = $this->get_all_packs();
 
         $active_packs = array_filter($packs, function($pack) {
-            return isset($pack['active']) && $pack['active'];
+            if (empty($pack['active'])) {
+                return false;
+            }
+            // Compatibilidad con packs antiguos que tenían use_type en lugar de use_for_orders
+            if (!array_key_exists('use_for_orders', $pack)) {
+                return ($pack['use_type'] ?? 'create_order') === 'create_order';
+            }
+            return (bool) $pack['use_for_orders'];
         });
 
         // Ordenar por orden
@@ -288,14 +291,20 @@ class IVBIR_Pack_Manager {
     }
 
     /**
-     * Obtener packs activos para añadir al carrito (use_type = add_to_cart)
+     * Obtener packs activos para añadir al carrito (use_for_cart)
      */
     public function get_cart_packs() {
         $packs = $this->get_all_packs();
 
         $cart_packs = array_filter($packs, function($pack) {
-            return isset($pack['active']) && $pack['active']
-                && ($pack['use_type'] ?? 'create_order') === 'add_to_cart';
+            if (empty($pack['active'])) {
+                return false;
+            }
+            // Compatibilidad con packs antiguos que tenían use_type
+            if (!array_key_exists('use_for_cart', $pack)) {
+                return ($pack['use_type'] ?? 'create_order') === 'add_to_cart';
+            }
+            return (bool) $pack['use_for_cart'];
         });
 
         uasort($cart_packs, function($a, $b) {
