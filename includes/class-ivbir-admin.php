@@ -31,6 +31,8 @@ class IVBIR_Admin {
         add_action('wp_ajax_ivbir_search_products', array($this, 'ajax_search_products'));
         add_action('wp_ajax_ivbir_reorder_items', array($this, 'ajax_reorder_items'));
         add_action('wp_ajax_ivbir_get_pack_summary', array($this, 'ajax_get_pack_summary'));
+        add_action('wp_ajax_ivbir_search_users', array($this, 'ajax_search_users'));
+        add_action('wp_ajax_ivbir_assign_packs_to_user', array($this, 'ajax_assign_packs_to_user'));
     }
 
     /**
@@ -72,6 +74,15 @@ class IVBIR_Admin {
             'manage_woocommerce',
             'ivbir-edit-pack',
             array($this, 'render_edit_pack_page')
+        );
+
+        add_submenu_page(
+            'ivbir-settings',
+            __('Asignar Packs a Usuarios', 'ivb-infarma-registration'),
+            __('Asignar Packs', 'ivb-infarma-registration'),
+            'manage_woocommerce',
+            'ivbir-assign-packs',
+            array($this, 'render_assign_packs_page')
         );
     }
 
@@ -1000,6 +1011,254 @@ class IVBIR_Admin {
             'discounted_price' => wc_price($discounted_price),
             'discount_percentage' => $discount_percentage,
         ));
+    }
+
+    /**
+     * AJAX: buscar usuarios por nombre, apellido o email
+     */
+    public function ajax_search_users() {
+        check_ajax_referer('ivbir_assign_packs', 'nonce');
+
+        if (!current_user_can('manage_woocommerce')) {
+            wp_send_json_error('Sin permisos');
+        }
+
+        $search = sanitize_text_field($_POST['search'] ?? '');
+
+        if (strlen($search) < 2) {
+            wp_send_json_success(array());
+        }
+
+        $users = get_users(array(
+            'search'         => '*' . $search . '*',
+            'search_columns' => array('user_login', 'user_email', 'display_name', 'user_nicename'),
+            'number'         => 20,
+            'fields'         => array('ID', 'display_name', 'user_email'),
+        ));
+
+        $results = array_map(function($u) {
+            $pending = get_user_meta($u->ID, '_ivbir_pending_cart_packs', true);
+            return array(
+                'id'      => $u->ID,
+                'name'    => $u->display_name,
+                'email'   => $u->user_email,
+                'pending' => !empty($pending) ? $pending : array(),
+            );
+        }, $users);
+
+        wp_send_json_success($results);
+    }
+
+    /**
+     * AJAX: asignar packs de carrito a un usuario existente
+     */
+    public function ajax_assign_packs_to_user() {
+        check_ajax_referer('ivbir_assign_packs', 'nonce');
+
+        if (!current_user_can('manage_woocommerce')) {
+            wp_send_json_error('Sin permisos');
+        }
+
+        $user_id  = intval($_POST['user_id'] ?? 0);
+        $pack_ids = isset($_POST['pack_ids']) && is_array($_POST['pack_ids'])
+            ? array_map('sanitize_key', $_POST['pack_ids'])
+            : array();
+
+        if (!$user_id || !get_user_by('id', $user_id)) {
+            wp_send_json_error('Usuario no encontrado');
+        }
+
+        if (empty($pack_ids)) {
+            wp_send_json_error('No has seleccionado ningún pack');
+        }
+
+        // Validar que los IDs corresponden a packs de carrito activos
+        $cart_packs = ivbir()->pack_manager->get_cart_packs();
+        $valid_ids  = array_values(array_filter($pack_ids, function($id) use ($cart_packs) {
+            return isset($cart_packs[$id]);
+        }));
+
+        if (empty($valid_ids)) {
+            wp_send_json_error('Los packs seleccionados no son válidos');
+        }
+
+        // Mezclar con los pendientes existentes (sin duplicar)
+        $existing = get_user_meta($user_id, '_ivbir_pending_cart_packs', true);
+        if (!is_array($existing)) {
+            $existing = array();
+        }
+        $merged = array_values(array_unique(array_merge($existing, $valid_ids)));
+
+        update_user_meta($user_id, '_ivbir_pending_cart_packs', $merged);
+
+        wp_send_json_success(array(
+            'message' => sprintf(
+                _n('1 pack asignado a %s.', '%d packs asignados a %s.', count($valid_ids), 'ivb-infarma-registration'),
+                count($valid_ids),
+                get_user_by('id', $user_id)->display_name
+            ),
+        ));
+    }
+
+    /**
+     * Renderizar página de asignación de packs a usuarios existentes
+     */
+    public function render_assign_packs_page() {
+        $cart_packs = ivbir()->pack_manager->get_cart_packs();
+        ?>
+        <div class="wrap ivbir-wrap">
+            <h1>
+                <span class="dashicons dashicons-groups" style="font-size:30px;margin-right:10px;"></span>
+                <?php _e('Asignar Packs a Usuarios', 'ivb-infarma-registration'); ?>
+            </h1>
+            <p class="description" style="margin-bottom:24px;">
+                <?php _e('Busca un usuario ya creado y asígnale packs de carrito. Los productos se añadirán a su carrito en el próximo login.', 'ivb-infarma-registration'); ?>
+            </p>
+
+            <?php if (empty($cart_packs)): ?>
+                <div class="notice notice-warning"><p>
+                    <?php _e('No hay packs de tipo "Añadir al carrito" activos. Crea uno en Gestionar Packs.', 'ivb-infarma-registration'); ?>
+                </p></div>
+            <?php else: ?>
+
+            <div class="ivbir-assign-packs-layout">
+
+                <!-- Buscador de usuarios -->
+                <div class="ivbir-form-section" style="max-width:700px;">
+                    <h2><?php _e('1. Buscar usuario', 'ivb-infarma-registration'); ?></h2>
+                    <div style="display:flex;gap:10px;align-items:flex-start;">
+                        <input type="text" id="ivbir-user-search" class="regular-text" placeholder="<?php esc_attr_e('Nombre, email o usuario...', 'ivb-infarma-registration'); ?>" style="flex:1;max-width:400px;">
+                        <span class="spinner" id="ivbir-user-search-spinner" style="float:none;margin:4px 0 0;"></span>
+                    </div>
+                    <div id="ivbir-user-results" style="margin-top:12px;max-width:700px;"></div>
+                </div>
+
+                <!-- Selector de packs (oculto hasta elegir usuario) -->
+                <div class="ivbir-form-section" id="ivbir-pack-assign-section" style="max-width:700px;display:none;">
+                    <h2><?php _e('2. Seleccionar packs', 'ivb-infarma-registration'); ?></h2>
+                    <p id="ivbir-selected-user-label" style="font-weight:600;color:#4d738a;margin-bottom:16px;"></p>
+
+                    <div class="ivbir-cart-packs-grid" style="max-width:100%;">
+                        <?php foreach ($cart_packs as $pack_id => $pack):
+                            $summary = ivbir()->pack_manager->get_pack_summary($pack_id);
+                            if (!$summary) continue;
+                        ?>
+                            <label class="ivbir-cart-pack-card">
+                                <input type="checkbox" class="ivbir-assign-pack-cb" value="<?php echo esc_attr($pack_id); ?>">
+                                <div class="ivbir-cart-pack-info">
+                                    <strong><?php echo esc_html($pack['name']); ?></strong>
+                                    <?php if (!empty($pack['description'])): ?>
+                                        <span class="description"><?php echo esc_html($pack['description']); ?></span>
+                                    <?php endif; ?>
+                                    <div class="ivbir-cart-pack-meta">
+                                        <span>
+                                            <?php printf(
+                                                _n('%d producto', '%d productos', $summary['total_products'], 'ivb-infarma-registration'),
+                                                $summary['total_products']
+                                            ); ?>
+                                            &nbsp;·&nbsp;
+                                            <?php printf(
+                                                _n('%d unidad', '%d unidades', $summary['total_items'], 'ivb-infarma-registration'),
+                                                $summary['total_items']
+                                            ); ?>
+                                        </span>
+                                    </div>
+                                </div>
+                            </label>
+                        <?php endforeach; ?>
+                    </div>
+
+                    <div style="margin-top:20px;display:flex;align-items:center;gap:12px;">
+                        <button type="button" id="ivbir-do-assign" class="button button-primary button-large" disabled>
+                            <span class="dashicons dashicons-yes" style="vertical-align:middle;"></span>
+                            <?php _e('Asignar packs seleccionados', 'ivb-infarma-registration'); ?>
+                        </button>
+                        <span class="spinner" id="ivbir-assign-spinner" style="float:none;margin:0;"></span>
+                        <span id="ivbir-assign-result" style="font-weight:600;"></span>
+                    </div>
+                </div>
+
+            </div>
+
+            <script>
+            (function($){
+                var selectedUserId = null;
+                var nonce = '<?php echo wp_create_nonce('ivbir_assign_packs'); ?>';
+                var searchTimer;
+
+                $('#ivbir-user-search').on('input', function(){
+                    clearTimeout(searchTimer);
+                    var val = $(this).val();
+                    if (val.length < 2) { $('#ivbir-user-results').empty(); return; }
+                    searchTimer = setTimeout(function(){
+                        $('#ivbir-user-search-spinner').addClass('is-active');
+                        $.post(ajaxurl, { action: 'ivbir_search_users', nonce: nonce, search: val }, function(res){
+                            $('#ivbir-user-search-spinner').removeClass('is-active');
+                            if (!res.success || !res.data.length) {
+                                $('#ivbir-user-results').html('<p style="color:#777;"><?php esc_js(_e('No se encontraron usuarios.', 'ivb-infarma-registration')); ?></p>');
+                                return;
+                            }
+                            var html = '<table class="widefat striped" style="max-width:700px;"><thead><tr><th><?php esc_js(_e('Nombre', 'ivb-infarma-registration')); ?></th><th><?php esc_js(_e('Email', 'ivb-infarma-registration')); ?></th><th><?php esc_js(_e('Packs pendientes', 'ivb-infarma-registration')); ?></th><th></th></tr></thead><tbody>';
+                            $.each(res.data, function(i, u){
+                                var pending = u.pending.length ? u.pending.join(', ') : '—';
+                                html += '<tr><td><strong>' + $('<span>').text(u.name).html() + '</strong></td>';
+                                html += '<td>' + $('<span>').text(u.email).html() + '</td>';
+                                html += '<td><span style="font-size:12px;color:#777;">' + $('<span>').text(pending).html() + '</span></td>';
+                                html += '<td><button type="button" class="button ivbir-select-user" data-id="' + u.id + '" data-name="' + $('<span>').text(u.name).html() + '"><?php esc_js(_e('Seleccionar', 'ivb-infarma-registration')); ?></button></td></tr>';
+                            });
+                            html += '</tbody></table>';
+                            $('#ivbir-user-results').html(html);
+                        });
+                    }, 300);
+                });
+
+                $(document).on('click', '.ivbir-select-user', function(){
+                    selectedUserId = $(this).data('id');
+                    var name = $(this).data('name');
+                    $('#ivbir-selected-user-label').text('<?php esc_js(_e('Usuario seleccionado', 'ivb-infarma-registration')); ?>: ' + name);
+                    $('.ivbir-assign-pack-cb').prop('checked', false);
+                    $('#ivbir-assign-result').text('').css('color','');
+                    $('#ivbir-pack-assign-section').show();
+                    $('#ivbir-do-assign').prop('disabled', true);
+                    $('html, body').animate({ scrollTop: $('#ivbir-pack-assign-section').offset().top - 40 }, 300);
+                });
+
+                $(document).on('change', '.ivbir-assign-pack-cb', function(){
+                    var any = $('.ivbir-assign-pack-cb:checked').length > 0;
+                    $('#ivbir-do-assign').prop('disabled', !any);
+                });
+
+                $('#ivbir-do-assign').on('click', function(){
+                    var packs = [];
+                    $('.ivbir-assign-pack-cb:checked').each(function(){ packs.push($(this).val()); });
+                    if (!selectedUserId || !packs.length) return;
+
+                    $('#ivbir-assign-spinner').addClass('is-active');
+                    $('#ivbir-do-assign').prop('disabled', true);
+                    $('#ivbir-assign-result').text('');
+
+                    $.post(ajaxurl, {
+                        action: 'ivbir_assign_packs_to_user',
+                        nonce: nonce,
+                        user_id: selectedUserId,
+                        pack_ids: packs,
+                    }, function(res){
+                        $('#ivbir-assign-spinner').removeClass('is-active');
+                        $('#ivbir-do-assign').prop('disabled', false);
+                        if (res.success) {
+                            $('#ivbir-assign-result').text(res.data.message).css('color', '#46b450');
+                            $('.ivbir-assign-pack-cb').prop('checked', false);
+                        } else {
+                            $('#ivbir-assign-result').text(res.data).css('color', '#d63638');
+                        }
+                    });
+                });
+            }(jQuery));
+            </script>
+
+            <?php endif; ?>
+        </div>
+        <?php
     }
 
 }

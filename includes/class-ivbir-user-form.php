@@ -1735,15 +1735,6 @@ class IVBIR_User_Form {
                                                 $summary['total_items']
                                             ); ?>
                                         </span>
-                                        <?php if ($pack['discount_percentage'] > 0): ?>
-                                            <span>
-                                                <?php echo wc_price($summary['discounted_price']); ?>
-                                                <del style="color:#999;"><?php echo wc_price($summary['original_price']); ?></del>
-                                                <strong style="color:#c0392b;">-<?php echo $pack['discount_percentage']; ?>%</strong>
-                                            </span>
-                                        <?php else: ?>
-                                            <span><?php echo wc_price($summary['original_price']); ?></span>
-                                        <?php endif; ?>
                                     </div>
                                 </div>
                             </label>

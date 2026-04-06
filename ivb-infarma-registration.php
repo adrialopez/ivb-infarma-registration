@@ -3,7 +3,7 @@
  * Plugin Name: IVB Packs & POS
  * Plugin URI: https://thinkingidea.com/
  * Description: Gestión de packs con creación de pedidos (TPV/Infarma) y añadir al carrito al crear usuarios
- * Version: 0.4.5
+ * Version: 0.5.0
  * Author: Thinking Idea
  * Author URI: https://thinkingidea.com/
  * Text Domain: ivb-infarma-registration
@@ -29,7 +29,7 @@ if (!in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get
 }
 
 // Definir constantes del plugin
-define('IVBIR_VERSION', '0.4.5');
+define('IVBIR_VERSION', '0.5.0');
 define('IVBIR_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('IVBIR_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('IVBIR_PLUGIN_BASENAME', plugin_basename(__FILE__));
