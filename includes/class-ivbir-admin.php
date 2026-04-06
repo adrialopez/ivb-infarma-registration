@@ -70,11 +70,12 @@ class IVBIR_Admin {
         add_submenu_page(
             'ivbir-settings',
             __('Editar Pack', 'ivb-infarma-registration'),
-            null, // No mostrar en menú
+            __('Editar Pack', 'ivb-infarma-registration'),
             'manage_woocommerce',
             'ivbir-edit-pack',
             array($this, 'render_edit_pack_page')
         );
+        remove_submenu_page('ivbir-settings', 'ivbir-edit-pack');
 
         add_submenu_page(
             'ivbir-settings',
