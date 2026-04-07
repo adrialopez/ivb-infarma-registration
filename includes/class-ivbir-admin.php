@@ -67,15 +67,15 @@ class IVBIR_Admin {
             array($this, 'render_packs_page')
         );
 
+        // null como padre: página accesible por URL directa pero sin entrada en el menú
         add_submenu_page(
-            'ivbir-settings',
+            null,
             __('Editar Pack', 'ivb-infarma-registration'),
             __('Editar Pack', 'ivb-infarma-registration'),
             'manage_options',
             'ivbir-edit-pack',
             array($this, 'render_edit_pack_page')
         );
-        remove_submenu_page('ivbir-settings', 'ivbir-edit-pack');
 
         add_submenu_page(
             'ivbir-settings',
