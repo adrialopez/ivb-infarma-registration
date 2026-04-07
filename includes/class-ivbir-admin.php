@@ -42,7 +42,7 @@ class IVBIR_Admin {
         add_menu_page(
             __('IVB Packs & POS', 'ivb-infarma-registration'),
             __('IVB Packs & POS', 'ivb-infarma-registration'),
-            'manage_woocommerce',
+            'manage_options',
             'ivbir-settings',
             array($this, 'render_settings_page'),
             'dashicons-groups',
@@ -53,7 +53,7 @@ class IVBIR_Admin {
             'ivbir-settings',
             __('Configuración', 'ivb-infarma-registration'),
             __('Configuración', 'ivb-infarma-registration'),
-            'manage_woocommerce',
+            'manage_options',
             'ivbir-settings',
             array($this, 'render_settings_page')
         );
@@ -62,7 +62,7 @@ class IVBIR_Admin {
             'ivbir-settings',
             __('Gestionar Packs', 'ivb-infarma-registration'),
             __('Gestionar Packs', 'ivb-infarma-registration'),
-            'manage_woocommerce',
+            'manage_options',
             'ivbir-packs',
             array($this, 'render_packs_page')
         );
@@ -71,7 +71,7 @@ class IVBIR_Admin {
             'ivbir-settings',
             __('Editar Pack', 'ivb-infarma-registration'),
             __('Editar Pack', 'ivb-infarma-registration'),
-            'manage_woocommerce',
+            'manage_options',
             'ivbir-edit-pack',
             array($this, 'render_edit_pack_page')
         );
@@ -81,7 +81,7 @@ class IVBIR_Admin {
             'ivbir-settings',
             __('Asignar Packs a Usuarios', 'ivb-infarma-registration'),
             __('Asignar Packs', 'ivb-infarma-registration'),
-            'manage_woocommerce',
+            'manage_options',
             'ivbir-assign-packs',
             array($this, 'render_assign_packs_page')
         );
@@ -685,7 +685,7 @@ class IVBIR_Admin {
     public function ajax_save_pack() {
         check_ajax_referer('ivbir_admin_nonce', 'nonce');
 
-        if (!current_user_can('manage_woocommerce')) {
+        if (!current_user_can('manage_options')) {
             wp_send_json_error(array('message' => __('Sin permisos', 'ivb-infarma-registration')));
         }
 
@@ -709,7 +709,7 @@ class IVBIR_Admin {
     public function ajax_delete_pack() {
         check_ajax_referer('ivbir_admin_nonce', 'nonce');
 
-        if (!current_user_can('manage_woocommerce')) {
+        if (!current_user_can('manage_options')) {
             wp_send_json_error(array('message' => __('Sin permisos', 'ivb-infarma-registration')));
         }
 
@@ -725,7 +725,7 @@ class IVBIR_Admin {
     public function ajax_save_pack_category() {
         check_ajax_referer('ivbir_admin_nonce', 'nonce');
 
-        if (!current_user_can('manage_woocommerce')) {
+        if (!current_user_can('manage_options')) {
             wp_send_json_error(array('message' => __('Sin permisos', 'ivb-infarma-registration')));
         }
 
@@ -748,7 +748,7 @@ class IVBIR_Admin {
     public function ajax_delete_pack_category() {
         check_ajax_referer('ivbir_admin_nonce', 'nonce');
 
-        if (!current_user_can('manage_woocommerce')) {
+        if (!current_user_can('manage_options')) {
             wp_send_json_error(array('message' => __('Sin permisos', 'ivb-infarma-registration')));
         }
 
@@ -764,7 +764,7 @@ class IVBIR_Admin {
     public function ajax_add_product_to_pack() {
         check_ajax_referer('ivbir_admin_nonce', 'nonce');
 
-        if (!current_user_can('manage_woocommerce')) {
+        if (!current_user_can('manage_options')) {
             wp_send_json_error(array('message' => __('Sin permisos', 'ivb-infarma-registration')));
         }
 
@@ -814,7 +814,7 @@ class IVBIR_Admin {
     public function ajax_remove_product_from_pack() {
         check_ajax_referer('ivbir_admin_nonce', 'nonce');
 
-        if (!current_user_can('manage_woocommerce')) {
+        if (!current_user_can('manage_options')) {
             wp_send_json_error(array('message' => __('Sin permisos', 'ivb-infarma-registration')));
         }
 
@@ -832,7 +832,7 @@ class IVBIR_Admin {
     public function ajax_update_product_quantity() {
         check_ajax_referer('ivbir_admin_nonce', 'nonce');
 
-        if (!current_user_can('manage_woocommerce')) {
+        if (!current_user_can('manage_options')) {
             wp_send_json_error(array('message' => __('Sin permisos', 'ivb-infarma-registration')));
         }
 
@@ -851,7 +851,7 @@ class IVBIR_Admin {
     public function ajax_search_products() {
         check_ajax_referer('ivbir_admin_nonce', 'nonce');
 
-        if (!current_user_can('manage_woocommerce')) {
+        if (!current_user_can('manage_options')) {
             wp_send_json_error(array('message' => __('Sin permisos', 'ivb-infarma-registration')));
         }
 
@@ -942,7 +942,7 @@ class IVBIR_Admin {
     public function ajax_reorder_items() {
         check_ajax_referer('ivbir_admin_nonce', 'nonce');
 
-        if (!current_user_can('manage_woocommerce')) {
+        if (!current_user_can('manage_options')) {
             wp_send_json_error(array('message' => __('Sin permisos', 'ivb-infarma-registration')));
         }
 
@@ -972,7 +972,7 @@ class IVBIR_Admin {
     public function ajax_get_pack_summary() {
         check_ajax_referer('ivbir_admin_nonce', 'nonce');
 
-        if (!current_user_can('manage_woocommerce')) {
+        if (!current_user_can('manage_options')) {
             wp_send_json_error(array('message' => __('Sin permisos', 'ivb-infarma-registration')));
         }
 
@@ -1020,7 +1020,7 @@ class IVBIR_Admin {
     public function ajax_search_users() {
         check_ajax_referer('ivbir_assign_packs', 'nonce');
 
-        if (!current_user_can('manage_woocommerce')) {
+        if (!current_user_can('manage_options')) {
             wp_send_json_error('Sin permisos');
         }
 
@@ -1056,7 +1056,7 @@ class IVBIR_Admin {
     public function ajax_assign_packs_to_user() {
         check_ajax_referer('ivbir_assign_packs', 'nonce');
 
-        if (!current_user_can('manage_woocommerce')) {
+        if (!current_user_can('manage_options')) {
             wp_send_json_error('Sin permisos');
         }
 
