@@ -85,6 +85,15 @@ class IVBIR_Admin {
             'ivbir-assign-packs',
             array($this, 'render_assign_packs_page')
         );
+
+        add_submenu_page(
+            'ivbir-settings',
+            __('Informes de Packs', 'ivb-infarma-registration'),
+            __('Informes', 'ivb-infarma-registration'),
+            'manage_options',
+            'ivbir-reports',
+            array($this, 'render_reports_page')
+        );
     }
 
     /**
@@ -1258,6 +1267,219 @@ class IVBIR_Admin {
             </script>
 
             <?php endif; ?>
+        </div>
+        <?php
+    }
+
+    /**
+     * Renderizar página de informes de packs
+     */
+    public function render_reports_page() {
+        global $wpdb;
+
+        // --- Pedidos TPV / Infarma ---
+        $tpv_orders = $wpdb->get_results("
+            SELECT pm_pack.meta_value AS pack_name,
+                   COUNT(DISTINCT o.ID) AS total_orders,
+                   SUM(pm_total.meta_value) AS total_revenue
+            FROM {$wpdb->posts} o
+            INNER JOIN {$wpdb->postmeta} pm_flag  ON o.ID = pm_flag.post_id  AND pm_flag.meta_key  = '_ivbir_registration_order' AND pm_flag.meta_value = 'yes'
+            INNER JOIN {$wpdb->postmeta} pm_pack  ON o.ID = pm_pack.post_id  AND pm_pack.meta_key  = 'pack_nombre'
+            INNER JOIN {$wpdb->postmeta} pm_total ON o.ID = pm_total.post_id AND pm_total.meta_key = '_order_total'
+            WHERE o.post_type = 'shop_order'
+            GROUP BY pm_pack.meta_value
+            ORDER BY total_orders DESC
+        ");
+
+        $tpv_totals = $wpdb->get_row("
+            SELECT COUNT(DISTINCT o.ID) AS total_orders, SUM(pm_total.meta_value) AS total_revenue
+            FROM {$wpdb->posts} o
+            INNER JOIN {$wpdb->postmeta} pm_flag  ON o.ID = pm_flag.post_id  AND pm_flag.meta_key  = '_ivbir_registration_order' AND pm_flag.meta_value = 'yes'
+            INNER JOIN {$wpdb->postmeta} pm_total ON o.ID = pm_total.post_id AND pm_total.meta_key = '_order_total'
+            WHERE o.post_type = 'shop_order'
+        ");
+
+        // --- Pedidos de packs de carrito ---
+        $cart_pack_rows = $wpdb->get_results("
+            SELECT pm_names.meta_value AS pack_names_raw,
+                   o.ID AS order_id,
+                   pm_total.meta_value AS order_total
+            FROM {$wpdb->posts} o
+            INNER JOIN {$wpdb->postmeta} pm_names ON o.ID = pm_names.post_id AND pm_names.meta_key = '_ivbir_cart_pack_names'
+            INNER JOIN {$wpdb->postmeta} pm_total ON o.ID = pm_total.post_id AND pm_total.meta_key = '_order_total'
+            WHERE o.post_type = 'shop_order'
+        ");
+
+        // Agrupar por pack name
+        $cart_by_pack = array();
+        $cart_total_orders  = 0;
+        $cart_total_revenue = 0;
+        foreach ($cart_pack_rows as $row) {
+            $names = maybe_unserialize($row->pack_names_raw);
+            if (!is_array($names)) {
+                $names = array($names);
+            }
+            foreach ($names as $name) {
+                if (!isset($cart_by_pack[$name])) {
+                    $cart_by_pack[$name] = array('total_orders' => 0, 'total_revenue' => 0);
+                }
+                $cart_by_pack[$name]['total_orders']++;
+                $cart_by_pack[$name]['total_revenue'] += floatval($row->order_total);
+            }
+            $cart_total_orders++;
+            $cart_total_revenue += floatval($row->order_total);
+        }
+        arsort($cart_by_pack);
+
+        // --- Últimos 20 pedidos con pack (TPV o carrito) ---
+        $recent_orders = $wpdb->get_results("
+            SELECT DISTINCT o.ID, o.post_status, o.post_date,
+                   pm_total.meta_value AS order_total,
+                   pm_tpv.meta_value   AS tpv_pack,
+                   pm_cart.meta_value  AS cart_packs
+            FROM {$wpdb->posts} o
+            INNER JOIN {$wpdb->postmeta} pm_total ON o.ID = pm_total.post_id AND pm_total.meta_key = '_order_total'
+            LEFT JOIN  {$wpdb->postmeta} pm_tpv   ON o.ID = pm_tpv.post_id   AND pm_tpv.meta_key   = 'pack_nombre'
+            LEFT JOIN  {$wpdb->postmeta} pm_cart  ON o.ID = pm_cart.post_id  AND pm_cart.meta_key  = '_ivbir_cart_pack_names'
+            WHERE o.post_type = 'shop_order'
+              AND (pm_tpv.meta_value IS NOT NULL OR pm_cart.meta_value IS NOT NULL)
+            ORDER BY o.post_date DESC
+            LIMIT 20
+        ");
+        ?>
+        <div class="wrap ivbir-wrap">
+            <h1>
+                <span class="dashicons dashicons-chart-bar" style="font-size:30px;margin-right:10px;"></span>
+                <?php _e('Informes de Packs', 'ivb-infarma-registration'); ?>
+            </h1>
+
+            <!-- Totales globales -->
+            <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:30px;">
+                <div class="ivbir-stat-box" style="background:#fff;border:1px solid #e0e0e0;border-radius:10px;padding:20px 28px;min-width:180px;">
+                    <div style="font-size:13px;color:#777;margin-bottom:4px;"><?php _e('Pedidos TPV / Infarma', 'ivb-infarma-registration'); ?></div>
+                    <div style="font-size:28px;font-weight:700;color:#1d2327;"><?php echo intval($tpv_totals->total_orders); ?></div>
+                    <div style="font-size:13px;color:#4d738a;"><?php echo wc_price($tpv_totals->total_revenue ?? 0); ?></div>
+                </div>
+                <div class="ivbir-stat-box" style="background:#fff;border:1px solid #e0e0e0;border-radius:10px;padding:20px 28px;min-width:180px;">
+                    <div style="font-size:13px;color:#777;margin-bottom:4px;"><?php _e('Pedidos con pack de carrito', 'ivb-infarma-registration'); ?></div>
+                    <div style="font-size:28px;font-weight:700;color:#1d2327;"><?php echo $cart_total_orders; ?></div>
+                    <div style="font-size:13px;color:#0073aa;"><?php echo wc_price($cart_total_revenue); ?></div>
+                </div>
+                <div class="ivbir-stat-box" style="background:#fff;border:1px solid #e0e0e0;border-radius:10px;padding:20px 28px;min-width:180px;">
+                    <div style="font-size:13px;color:#777;margin-bottom:4px;"><?php _e('Total pedidos con pack', 'ivb-infarma-registration'); ?></div>
+                    <div style="font-size:28px;font-weight:700;color:#1d2327;"><?php echo intval($tpv_totals->total_orders) + $cart_total_orders; ?></div>
+                    <div style="font-size:13px;color:#46b450;"><?php echo wc_price(($tpv_totals->total_revenue ?? 0) + $cart_total_revenue); ?></div>
+                </div>
+            </div>
+
+            <div style="display:flex;gap:30px;flex-wrap:wrap;align-items:flex-start;">
+
+                <!-- Tabla TPV -->
+                <div style="flex:1;min-width:280px;">
+                    <h2 style="font-size:15px;border-bottom:2px solid #46b450;padding-bottom:6px;display:flex;align-items:center;gap:6px;">
+                        <span class="dashicons dashicons-cart" style="color:#46b450;"></span>
+                        <?php _e('Por pack — TPV / Infarma', 'ivb-infarma-registration'); ?>
+                    </h2>
+                    <?php if (empty($tpv_orders)): ?>
+                        <p style="color:#777;"><?php _e('Sin pedidos todavía.', 'ivb-infarma-registration'); ?></p>
+                    <?php else: ?>
+                    <table class="widefat striped" style="border-radius:8px;overflow:hidden;">
+                        <thead><tr>
+                            <th><?php _e('Pack', 'ivb-infarma-registration'); ?></th>
+                            <th><?php _e('Pedidos', 'ivb-infarma-registration'); ?></th>
+                            <th><?php _e('Total', 'ivb-infarma-registration'); ?></th>
+                        </tr></thead>
+                        <tbody>
+                        <?php foreach ($tpv_orders as $row): ?>
+                            <tr>
+                                <td><?php echo esc_html($row->pack_name); ?></td>
+                                <td><strong><?php echo intval($row->total_orders); ?></strong></td>
+                                <td><?php echo wc_price($row->total_revenue); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                    <?php endif; ?>
+                </div>
+
+                <!-- Tabla Carrito -->
+                <div style="flex:1;min-width:280px;">
+                    <h2 style="font-size:15px;border-bottom:2px solid #0073aa;padding-bottom:6px;display:flex;align-items:center;gap:6px;">
+                        <span class="dashicons dashicons-store" style="color:#0073aa;"></span>
+                        <?php _e('Por pack — Carrito', 'ivb-infarma-registration'); ?>
+                    </h2>
+                    <?php if (empty($cart_by_pack)): ?>
+                        <p style="color:#777;"><?php _e('Sin pedidos todavía.', 'ivb-infarma-registration'); ?></p>
+                    <?php else: ?>
+                    <table class="widefat striped" style="border-radius:8px;overflow:hidden;">
+                        <thead><tr>
+                            <th><?php _e('Pack', 'ivb-infarma-registration'); ?></th>
+                            <th><?php _e('Pedidos', 'ivb-infarma-registration'); ?></th>
+                            <th><?php _e('Total', 'ivb-infarma-registration'); ?></th>
+                        </tr></thead>
+                        <tbody>
+                        <?php foreach ($cart_by_pack as $name => $data): ?>
+                            <tr>
+                                <td><?php echo esc_html($name); ?></td>
+                                <td><strong><?php echo intval($data['total_orders']); ?></strong></td>
+                                <td><?php echo wc_price($data['total_revenue']); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                    <?php endif; ?>
+                </div>
+
+            </div>
+
+            <!-- Últimos pedidos -->
+            <h2 style="margin-top:36px;font-size:15px;border-bottom:1px solid #e0e0e0;padding-bottom:8px;">
+                <?php _e('Últimos 20 pedidos con pack', 'ivb-infarma-registration'); ?>
+            </h2>
+            <?php if (empty($recent_orders)): ?>
+                <p style="color:#777;"><?php _e('Sin pedidos todavía.', 'ivb-infarma-registration'); ?></p>
+            <?php else: ?>
+            <table class="widefat striped" style="border-radius:8px;overflow:hidden;">
+                <thead><tr>
+                    <th><?php _e('Pedido', 'ivb-infarma-registration'); ?></th>
+                    <th><?php _e('Pack', 'ivb-infarma-registration'); ?></th>
+                    <th><?php _e('Tipo', 'ivb-infarma-registration'); ?></th>
+                    <th><?php _e('Estado', 'ivb-infarma-registration'); ?></th>
+                    <th><?php _e('Total', 'ivb-infarma-registration'); ?></th>
+                    <th><?php _e('Fecha', 'ivb-infarma-registration'); ?></th>
+                </tr></thead>
+                <tbody>
+                <?php foreach ($recent_orders as $row):
+                    $order_obj = wc_get_order($row->ID);
+                    if (!$order_obj) continue;
+                    $is_tpv = !empty($row->tpv_pack);
+                    $pack_label = $is_tpv
+                        ? esc_html($row->tpv_pack)
+                        : esc_html(implode(', ', maybe_unserialize($row->cart_packs) ?: array($row->cart_packs)));
+                ?>
+                    <tr>
+                        <td>
+                            <a href="<?php echo esc_url(get_edit_post_link($row->ID)); ?>" target="_blank">
+                                #<?php echo $row->ID; ?> — <?php echo esc_html($order_obj->get_formatted_billing_full_name()); ?>
+                            </a>
+                        </td>
+                        <td><?php echo $pack_label; ?></td>
+                        <td>
+                            <?php if ($is_tpv): ?>
+                                <span style="background:#46b450;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">TPV</span>
+                            <?php else: ?>
+                                <span style="background:#0073aa;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">Carrito</span>
+                            <?php endif; ?>
+                        </td>
+                        <td><?php echo wc_get_order_status_name($order_obj->get_status()); ?></td>
+                        <td><?php echo wc_price($row->order_total); ?></td>
+                        <td><?php echo date_i18n(get_option('date_format'), strtotime($row->post_date)); ?></td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+            <?php endif; ?>
+
         </div>
         <?php
     }
